@@ -25,6 +25,7 @@ import org.apache.ibatis.scripting.xmltags.XMLLanguageDriver;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.mapper.MapperFactoryBean;
+import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -33,10 +34,12 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.aot.BeanFactoryInitializationAotContribution;
 import org.springframework.beans.factory.aot.BeanFactoryInitializationAotProcessor;
+import org.springframework.beans.factory.aot.BeanRegistrationExcludeFilter;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
+import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -106,7 +109,19 @@ public class MyBatisNativeConfiguration {
     }
   }
 
-  static class MyBatisBeanFactoryInitializationAotProcessor implements BeanFactoryInitializationAotProcessor {
+  static class MyBatisBeanFactoryInitializationAotProcessor
+      implements BeanFactoryInitializationAotProcessor, BeanRegistrationExcludeFilter {
+
+    private final Set<Class<?>> excludeClasses = new HashSet<>();
+
+    MyBatisBeanFactoryInitializationAotProcessor() {
+      excludeClasses.add(MapperScannerConfigurer.class);
+    }
+
+    @Override public boolean isExcludedFromAotProcessing(RegisteredBean registeredBean) {
+      return excludeClasses.contains(registeredBean.getBeanClass());
+    }
+
     @Override
     public BeanFactoryInitializationAotContribution processAheadOfTime(ConfigurableListableBeanFactory beanFactory) {
       String[] beanNames = beanFactory.getBeanNamesForType(MapperFactoryBean.class);
@@ -208,7 +223,8 @@ public class MyBatisNativeConfiguration {
 
   static class MyBatisMapperFactoryBeanPostProcessor implements MergedBeanDefinitionPostProcessor, BeanFactoryAware {
 
-    private static final org.apache.commons.logging.Log LOG = LogFactory.getLog(MyBatisMapperFactoryBeanPostProcessor.class);
+    private static final org.apache.commons.logging.Log LOG = LogFactory.getLog(
+        MyBatisMapperFactoryBeanPostProcessor.class);
 
     private static final String MAPPER_FACTORY_BEAN = "org.mybatis.spring.mapper.MapperFactoryBean";
 
@@ -243,7 +259,8 @@ public class MyBatisNativeConfiguration {
     private Class<?> getMapperInterface(RootBeanDefinition beanDefinition) {
       try {
         return (Class<?>) beanDefinition.getPropertyValues().get("mapperInterface");
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         LOG.debug("Fail getting mapper interface type.", e);
         return null;
       }

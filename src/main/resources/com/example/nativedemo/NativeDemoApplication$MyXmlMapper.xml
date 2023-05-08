@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.nativedemo.NativeDemoApplication$MyXmlMapper">
+
+    <insert id="insert">
+        INSERT INTO messages (message)
+        VALUES (#{message})
+    </insert>
+
+    <select id="select" resultType="com.example.nativedemo.NativeDemoApplication$Message">
+        SELECT
+            id
+             ,message
+        FROM
+            messages
+        WHERE
+            id = #{id}
+    </select>
+
+</mapper>
